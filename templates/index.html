@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simple MCQ Maker (v1)</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-xl mx-auto bg-white p-6 rounded shadow">
+        <h1 class="text-xl font-bold text-blue-600 mb-2">MCQ Maker (MVP) 🚀</h1>
+        <p class="text-sm text-gray-600 mb-4">Paste notes to quickly generate basic test questions.</p>
+        
+        <textarea id="notes" rows="4" class="w-full p-2 border rounded mb-3 text-sm" placeholder="Paste notes here..."></textarea>
+        <button onclick="generate()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">Generate</button>
+        
+        <div id="results" class="mt-4 space-y-3"></div>
+    </div>
+
+<script>
+async function generate() {
+    let text = document.getElementById('notes').value;
+    let res = await fetch('/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ text })
+    });
+    let data = await res.json();
+    let html = '';
+    if(data.success) {
+        data.mcqs.forEach(q => {
+            html += `<div class="p-3 bg-gray-50 border rounded text-xs">
+                <p class="font-bold">Q${q.id}: ${q.question}</p>
+                <ul class="mt-1 space-y-1 text-gray-600">
+                    ${q.options.map((o, i) => `<li>${String.fromCharCode(65+i)}.${o}</li>`).join('')}
+                </ul>
+            </div>`;
+        });
+    }
+    document.getElementById('results').innerHTML = html;
+}
+</script>
+</body>
+</html>

@@ -1,35 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>my quiz maker</title>
+    <title>mcq master</title>
     <style>
         body { background: black; color: green; font-family: monospace; }
-        .box { width: 400px; margin: 50px auto; background: #111; padding: 20px; border: 1px solid green; }
-        textarea { width: 100%; height: 100px; background: black; color: green; border: 1px solid green; }
-        .error { color: red; }
+        .box { width: 500px; margin: 30px auto; background: #111; padding: 20px; border: 1px solid green; }
+        textarea { width: 100%; height: 150px; background: black; color: green; border: 1px solid green; }
+        .error { color: red; font-weight: bold; }
+        .q-card { background: #1a1a1a; padding: 10px; margin-top: 10px; border-left: 3px solid green; }
     </style>
 </head>
 <body>
 
     <div class="box">
-        <h2>MCQ Generator app</h2>
-        
-        <label>Upload txt file:</label><br>
-        <input type="file" id="fileBox"><br><br>
-        
-        <label>Or type text:</label><br>
+        <h2>MCQ Generator</h2>
+        <label>Paste your notes here:</label><br><br>
         <textarea id="textBox" placeholder="paste notes..."></textarea><br><br>
-        
         <button id="makeBtn" type="button">Make Quiz!</button>
-        
         <p id="err" class="error"></p>
     </div>
 
     <div id="quizDiv" class="box" style="display:none;">
-        <h2>Here is your quiz:</h2>
+        <h2>Your Quiz:</h2>
         <div id="questionsArea"></div>
+        <br>
         <button type="button" onclick="checkScore()">Check Score</button>
-        <h3 id="scoreBox"></h3>
+        <h3 id="scoreBox" style="color: yellow;"></h3>
     </div>
 
     <script>
@@ -37,16 +33,12 @@
 
         document.getElementById('makeBtn').onclick = async function() {
             document.getElementById('err').innerText = "";
+            document.getElementById('scoreBox').innerText = "";
             
-            let fInput = document.getElementById('fileBox').files[0];
             let tInput = document.getElementById('textBox').value;
             
-            let data = new FormData();
-            if (fInput) {
-                data.append('file', fInput);
-            } else {
-                data.append('text', tInput);
-            }
+            let data = new URLSearchParams();
+            data.append('text', tInput);
 
             let res = await fetch('/generate', {
                 method: 'POST',
@@ -66,12 +58,13 @@
 
             for (let i = 0; i < allQuestions.length; i++) {
                 let q = allQuestions[i];
-                let html = "<p><b>Q" + (i+1) + ": " + q.question + "</b></p>";
+                let html = `<div class="q-card"><p><b>Q${i+1}: ${q.question}</b></p>`;
                 
                 for (let j = 0; j < q.options.length; j++) {
-                    html += '<input type="radio" name="q_' + q.id + '" value="' + j + '"> ' + q.options[j] + '<br>';
+                    html += `<label><input type="radio" name="q_${q.id}" value="${j}"> ${q.options[j]}</label><br>`;
                 }
-                area.innerHTML += html + "<br>";
+                html += `</div>`;
+                area.innerHTML += html;
             }
 
             document.getElementById('quizDiv').style.display = "block";
@@ -81,14 +74,14 @@
             let score = 0;
             for (let i = 0; i < allQuestions.length; i++) {
                 let q = allQuestions[i];
-                let chosen = document.querySelector('input[name="q_' + q.id + '"]:checked');
+                let chosen = document.querySelector(`input[name="q_${q.id}"]:checked`);
                 if (chosen) {
                     if (parseInt(chosen.value) == q.correct) {
-                        score = score + 1;
+                        score++;
                     }
                 }
             }
-            document.getElementById('scoreBox').innerText = "You got " + score + " / " + allQuestions.length;
+            document.getElementById('scoreBox').innerText = `Score: ${score} / ${allQuestions.length}`;
         }
     </script>
 </body>

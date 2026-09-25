@@ -1,43 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Simple MCQ Maker (v1)</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <title>MCQ Generator 3000</title>
+    <style>
+        body { background: #111; color: #00ffcc; font-family: monospace; padding: 20px; }
+        .main-box { width: 500px; margin: 40px auto; background: #1a1a1a; padding: 20px; border: 2px dashed #ff00ff; }
+        textarea { width: 100%; background: #222; color: #fff; border: 1px solid #555; }
+        button { background: #ff00ff; color: #000; font-weight: bold; padding: 8px; border: none; cursor: pointer; }
+        button:hover { background: #cc00cc; }
+        .err { color: #ff3333; margin-top: 10px; font-weight: bold; }
+        .q-card { background: #262626; padding: 10px; margin-top: 10px; border-left: 4px solid #00ffcc; }
+    </style>
 </head>
-<body class="bg-gray-100 p-8">
-    <div class="max-w-xl mx-auto bg-white p-6 rounded shadow">
-        <h1 class="text-xl font-bold text-blue-600 mb-2">MCQ Maker (MVP) 🚀</h1>
-        <p class="text-sm text-gray-600 mb-4">Paste notes to quickly generate basic test questions.</p>
+<body>
+
+    <div class="main-box">
+        <h2>my mcq homework app </h2>
+        <h3> I KNOW ITS AN BASIC MCQ GENERATOR.  BUT YOU WILL LIKE IT </h3>
         
-        <textarea id="notes" rows="4" class="w-full p-2 border rounded mb-3 text-sm" placeholder="Paste notes here..."></textarea>
-        <button onclick="generate()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">Generate</button>
-        
-        <div id="results" class="mt-4 space-y-3"></div>
+        <p style="font-size: 11px; color: #aaa;">upload a txt file or paste stuff below</p>
+
+        <form id="quizForm">
+            <input type="file" id="fileField"><br><br>
+            <textarea id="textField" rows="4" placeholder="paste notes here..."></textarea><br><br>
+            <button type="submit">SUMMOM YOUR QUIZ </button>
+        </form>
+
+        <div id="errorMsg" class="err"></div>
+
+        <div id="quizContainer" style="display:none; margin-top:20px;">
+            <h3>Answer these:</h3>
+            <div id="questionsDiv"></div>
+            <br>
+            <button type="button" onclick="gradeQuiz()" style="background:#00ffcc;">SUBMIT ANSWERS</button>
+            <h2 id="scoreText" style="color: yellow;"></h2>
+        </div>
     </div>
 
-<script>
-async function generate() {
-    let text = document.getElementById('notes').value;
-    let res = await fetch('/generate', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ text })
-    });
-    let data = await res.json();
-    let html = '';
-    if(data.success) {
-        data.mcqs.forEach(q => {
-            html += `<div class="p-3 bg-gray-50 border rounded text-xs">
-                <p class="font-bold">Q${q.id}: ${q.question}</p>
-                <ul class="mt-1 space-y-1 text-gray-600">
-                    ${q.options.map((o, i) => `<li>${String.fromCharCode(65+i)}.${o}</li>`).join('')}
-                </ul>
-            </div>`;
-        });
-    }
-    document.getElementById('results').innerHTML = html;
-}
-</script>
+    <script>
+        let globalQuestions = [];
+
+        document.getElementById('quizForm').onsubmit = async function(e) {
+            e.preventDefault();
+            document.getElementById('errorMsg').innerText = "";
+            
+            let dataPacket = new FormData();
+            let fileInput = document.getElementById('fileField').files[0];
+            let textInput = document.getElementById('textField').value;
+
+            if (fileInput) {
+                dataPacket.append('file', fileInput);
+            } else {
+                dataPacket.append('text', textInput);
+            }
+
+            let response = await fetch('/generate', {
+                method: 'POST',
+                body: dataPacket
+            });
+            let resJson = await response.json();
+
+            if (!resJson.success) {
+                document.getElementById('errorMsg').innerText = resJson.error;
+                return;
+            }
+
+            globalQuestions = resJson.mcqs;
+            let container = document.getElementById('questionsDiv');
+            container.innerHTML = '';
+
+            globalQuestions.forEach((q, index) => {
+                let optHtml = '';
+                q.options.forEach((opt, oIndex) => {
+                    optHtml += `<label><input type="radio" name="q_${q.id}" value="${oIndex}"> ${opt}</label><br>`;
+                });
+                container.innerHTML += `<div class="q-card"><p><b>Q${index+1}:</b> ${q.question}</p>${optHtml}</div>`;
+            });
+
+            document.getElementById('quizContainer').style.display = 'block';
+        }
+
+        function gradeQuiz() {
+            let pts = 0;
+            globalQuestions.forEach((q) => {
+                let picked = document.querySelector(`input[name="q_${q.id}"]:checked`);
+                if (picked && parseInt(picked.value) === q.correct) {
+                    pts++;
+                }
+            });
+            document.getElementById('scoreText').innerText = `u got ${pts} / ${globalQuestions.length} gg wp`;
+        }
+    </script>
 </body>
 </html>

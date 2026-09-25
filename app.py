@@ -1,37 +1,53 @@
-
 from flask import Flask, render_template, request, jsonify
+import os
 
 app = Flask(__name__)
 
 @app.route('/')
-def index():
+def home():
+          #Naah! it sucks 
     return render_template('index.html')
 
 @app.route('/generate', methods=['POST'])
-def generate():
-    data = request.get_json()
-    text = data.get('text', '').strip()
+def gen():
+    text_data = ""
     
-    if not text:
-        return jsonify({"success": False, "error": "No text provided"})
+    # upload section yoo
+    if 'file' in request.files and request.files['file'].filename != '':
+        f = request.files['file']
+        text_data = f.read().decode('utf-8', errors='ignore')
+    else:
+        text_data = request.form.get('text', '')
+
+    if text_data == "":
+        return jsonify({"success": False, "error": "bro u wrote nothing"})
     
-    lines = [line.strip() for line in text.split('\n') if len(line.strip()) > 3]
+    # just split by new line
+    lines = text_data.split('\n')
     
-    mcqs = []
-    for i, line in enumerate(lines[:3], 1):  # Keep it simple: max 3 questions for v1
-        mcqs.append({
-            "id": i,
-            "question": f"What is the main point of: '{line}'?",
-            "options": [
-                "Correct: " + line,
-                "An incorrect distractor option.",
-                "Another unrelated concept.",
-                "None of the above."
-            ],
-            "answer": "A"
-        })
-        
-    return jsonify({"success": True, "mcqs": mcqs})
+    my_mcqs = []
+    count = 1
+    for line in lines:
+        if len(line) > 4: # ignore short lines
+            my_mcqs.append({
+                "id": count,
+                "question": "What does this mean: " + line,
+                "options": [
+                    line,
+                    "wrong option 1",
+                    "wrong option 2",
+                    "idk"
+                ],
+                "correct": 0 # first one is always correct
+            })
+            count = count + 1
+            if count > 5: # stop at 5 questions
+                break
+
+    if len(my_mcqs) == 0:
+        return jsonify({"success": False, "error": "text too short or empty lines only"})
+
+    return jsonify({"success": True, "mcqs": my_mcqs})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
